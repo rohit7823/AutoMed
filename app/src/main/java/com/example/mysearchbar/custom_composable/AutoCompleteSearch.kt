@@ -52,77 +52,54 @@ fun AutoCompleteSearchBar(
     modifier: Modifier,
     trailingIcon: ImageVector,
     countryCode: String = "IN",
+    userInput: String,
+    onUserInputChange: (String) -> Unit,
+    queryResults: List<Value>,
+    onQueryResultsChange: (List<Value>) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var userInput by remember {
-        mutableStateOf("")
-    }
     var trailingIconState by remember {
         mutableStateOf(trailingIcon)
     }
-    var queryResults by remember {
-        mutableStateOf(listOf<Value>())
-    }
 
-    Surface(
-        modifier = modifier,
-        elevation = 5.dp
-    ) {
-
-        Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-            OutlinedTextField(
-                value = userInput,
-                onValueChange = { query ->
-                    userInput = query
-                    scope.launch {
-                        if (userInput == "") {
-                            queryResults = emptyList()
-                        }
-                        trailingIconState = Icons.Default.Close
-
-                        val df = async {
-                            val result = getResults(userInput, countryCode)
-                            result
-                        }
-                        df.await()?.suggestions?.let { list ->
-                            if (list.isNotEmpty()) {
-                                queryResults = list.subList(0, list.size - 1)
-                            }
-                        }
-
-                        trailingIconState = Icons.Default.Search
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        OutlinedTextField(
+            value = userInput,
+            onValueChange = { query ->
+                onUserInputChange(query)
+                scope.launch {
+                    if (userInput == "") {
+                        onQueryResultsChange(emptyList())
                     }
-                },
-                placeholder = { Text(text = "Search..") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii,
-                    imeAction = ImeAction.Done),
-                trailingIcon = {
-                    Icon(imageVector = trailingIconState,
-                        contentDescription = "Search")
-                },
-                modifier = Modifier.border(width = 1.dp,
-                    color = Color.Black,
-                    shape = RoundedCornerShape(3.dp))
-            )
-            if (queryResults.isNotEmpty() && userInput.isNotEmpty()) {
-                Column(modifier = modifier
-                    .clip(RoundedCornerShape(3.dp)),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    LazyColumn {
-                        items(queryResults) {
-                            if (it.value.contains(userInput, true)) {
-                                val term = it.value
-                                Log.d("testing", "User Input: $userInput Matched String: $userInput")
-                                term.replace(userInput, "<font color='red'>$userInput</font>")
-                                Text(text = term)
-                            }
+                    trailingIconState = Icons.Default.Close
+
+                    val df = async {
+                        val result = getResults(query, countryCode)
+                        result
+                    }
+                    df.await()?.suggestions?.let { list ->
+                        if (list.isNotEmpty()) {
+                            onQueryResultsChange(list.subList(0, list.size - 1))
                         }
                     }
+
+                    trailingIconState = Icons.Default.Search
                 }
-            }
-        }
+            },
+            placeholder = { Text(text = "Search..") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii,
+                imeAction = ImeAction.Done),
+            trailingIcon = {
+                Icon(imageVector = trailingIconState,
+                    contentDescription = "Search")
+            },
+            modifier = Modifier.border(width = 1.dp,
+                color = Color.Black,
+                shape = RoundedCornerShape(3.dp)
+
+            ).fillMaxWidth()
+        )
 
     }
 }
